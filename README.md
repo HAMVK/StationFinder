@@ -1,4 +1,4 @@
-StationFinder by Roger Need
+StationFinder v1.0 by Roger Need
 ================================
 
 StationFinder is a self-contained radio station database application. It runs entirely
