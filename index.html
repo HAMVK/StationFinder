@@ -1,5 +1,5 @@
 <!--
-  WebSocket StationFinder v1.0
+  StationFinder v1.1
   Copyright (c) 2026 Roger Need
 
   This program is free software: you can redistribute it and/or
@@ -24,7 +24,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>StationFinder v1.0</title>
+  <title>StationFinder v1.1</title>
   <style>
     :root {
       --bg: #0d1117;
@@ -345,6 +345,17 @@
       text-align: right;
       transition: border-color 0.2s;
     }
+    select.ip-input {
+      font-family: inherit;
+      font-size: 1em;
+      color: #e6e6e6;
+      cursor: pointer;
+      text-align: left;
+      padding-top: 0;
+      padding-bottom: 3px;
+      line-height: 35px;
+      width: 160px;
+    }
     .ip-input:focus {
       outline: none;
       border-color: #b4bcc6;
@@ -357,7 +368,7 @@
       color: #fff;
       border: 1px solid #2ea043;
       border-radius: 6px;
-      font-size: 0.9em;
+      font-size: 0.95em;
       cursor: pointer;
       font-weight: 500;
       transition: all 0.2s;
@@ -388,13 +399,18 @@
 
   <!-- ── StationFinder header ── -->
   <header>
-    <h1>StationFinder v1.0</h1>
+    <h1>StationFinder v1.1</h1>
     <div class="connection-control">
       <div class="connection-status disconnected" id="connectionStatus">● Disconnected</div>
       <div class="connection-input-group">
-        <input type="text" id="ipAddress" class="ip-input" value="127.0.0.1" placeholder="IP Address" />
-        <input type="text" id="portSelect" class="ip-input" value="5454" placeholder="Port" style="width:70px; text-align:center;" />
-        <button id="connectBtn" class="connect-btn" onclick="wsToggleConnection()">Connect</button>
+        <select id="programSelect" class="ip-input" onchange="onProgramChange()">
+          <option value="">Select Protocol</option>
+          <option value="sdrconnect">WebSocket</option>
+          <option value="catcom">CAT (COM port)</option>
+        </select>
+        <input type="text" id="ipAddress" class="ip-input" value="127.0.0.1" placeholder="IP Address" style="display:none;" />
+        <input type="text" id="portSelect" class="ip-input" value="5454" placeholder="Port" style="width:70px; text-align:center; display:none;" />
+        <button id="connectBtn" class="connect-btn" onclick="toggleConnection()" disabled>Connect</button>
       </div>
     </div>
   </header>
@@ -469,21 +485,20 @@
 
       <h3 style="color:#80cbc4; margin-bottom:8px;">About</h3>
       <p style="margin-bottom:16px; line-height:1.6; color:#e6e6e6; max-width:90%;">
-        <a href="https://github.com/Roger-Need/tinyGTC-Toolkit" target="_blank" style="color:#60b8e0; text-decoration:underline;">StationFinder</a> is a self-contained radio station database application. Load a schedule
-        file (Aoki, EiBi, swskeds or s1b format) and search by frequency.  Then filter by station name,
-        mode, language, source, or on-air status. Optionally connect to SDRconnect
-        via WebSocket to track and tune stations in real time.
+        <a href="https://github.com/Roger-Need/StationFinder" target="_blank" style="color:#60b8e0; text-decoration:underline;">StationFinder</a> is a self-contained radio station database application. Load a station frequency schedule file and search by frequency.  Then filter by station name,
+        mode, language, source, or on-air status. Optionally connect to a SDR program
+        via WebSocket or CAT to track and tune stations in real time.
       </p>
 
       <h3 style="color:#80cbc4; margin-bottom:8px;">Buttons</h3>
       <div style="display:grid; grid-template-columns:max-content 1fr; gap:2px 16px; margin-bottom:16px; font-size:0.9em;">
-        <span style="color:#60b8e0; padding:3px 0;">Import File</span><span style="color:#e6e6e6; padding:3px 0;">Load a Aoki, EiBi, swskeds or s1b schedule file.</span>
+        <span style="color:#60b8e0; padding:3px 0;">Import File</span><span style="color:#e6e6e6; padding:3px 0;">Load an Aoki, EiBi, HFCC, SDR Console, swskeds or s1b schedule file.</span>
         <span style="color:#60b8e0; padding:3px 0;">Manual</span><span style="color:#e6e6e6; padding:3px 0;">Search manually by typing a frequency.</span>
         <span style="color:#60b8e0; padding:3px 0;">Fetch</span><span style="color:#e6e6e6; padding:3px 0;">One-shot read of the SDR VFO frequency.</span>
         <span style="color:#60b8e0; padding:3px 0;">Track</span><span style="color:#e6e6e6; padding:3px 0;">Continuously follow the SDR VFO frequency.</span>
         <span style="color:#60b8e0; padding:3px 0;">Reset All</span><span style="color:#e6e6e6; padding:3px 0;">Clear all search fields and filters.</span>
-        <span style="color:#60b8e0; padding:3px 0;">Web Search 1</span><span style="color:#e6e6e6; padding:3px 0;">Search current VFO frequency on shortwave.live.</span>
-        <span style="color:#60b8e0; padding:3px 0;">Web Search 2</span><span style="color:#e6e6e6; padding:3px 0;">Search current VFO frequency on short-wave.info.</span>
+        <span style="color:#60b8e0; padding:3px 0;">Web Search 1</span><span style="color:#e6e6e6; padding:3px 0;">Search current frequency on shortwave.live.</span>
+        <span style="color:#60b8e0; padding:3px 0;">Web Search 2</span><span style="color:#e6e6e6; padding:3px 0;">Search current frequency on short-wave.info.</span>
         <span style="color:#60b8e0; padding:3px 0;">Exact / Prefix / Range</span><span style="color:#e6e6e6; padding:3px 0;">Switch frequency search mode. Range accepts e.g. 9000-10000 kHz.</span>
         <span style="color:#60b8e0; padding:3px 0;">Show All / On Now</span><span style="color:#e6e6e6; padding:3px 0;">Filter to stations currently on air based on UTC time.</span>
         <span style="color:#60b8e0; padding:3px 0;">Language / Source</span><span style="color:#e6e6e6; padding:3px 0;">Filter results by language or schedule source.</span>
@@ -510,7 +525,8 @@
 
   <script>
     // Toggle the help modal overlay open or closed
-    function toggleHelp() {
+    function toggleHelp(e) {
+      if (e) e.stopPropagation();
       const overlay = document.getElementById('helpOverlay');
       const visible = overlay.style.display === 'flex';
       overlay.style.display = visible ? 'none' : 'flex';
@@ -540,15 +556,15 @@
 
     let dbLoaded = false; // True once a schedule file has been successfully loaded
 
-    // Enable or disable Track/Fetch buttons based on WebSocket and database state.
-    // If WebSocket closes while in track mode, automatically revert to manual mode.
+    // Enable or disable Track/Fetch buttons based on WebSocket or CAT connection state.
+    // If connection closes while in track mode, automatically revert to manual mode.
     function updateTrackBtn() {
       const trackBtn = document.getElementById('trackBtn');
       const fetchBtn = document.getElementById('fetchBtn');
-      const wsOpen   = ws && ws.readyState === WebSocket.OPEN;
-      trackBtn.disabled = !(dbLoaded && wsOpen);
-      fetchBtn.disabled = !(dbLoaded && wsOpen && !trackMode);
-      if (!wsOpen && trackMode) setTrackMode('manual');
+      const isOpen   = (ws && ws.readyState === WebSocket.OPEN) || (catPort && catPort.readable);
+      trackBtn.disabled = !(dbLoaded && isOpen);
+      fetchBtn.disabled = !(dbLoaded && isOpen && !trackMode);
+      if (!isOpen && trackMode) setTrackMode('manual');
     }
 
     let fetchPending = false;
@@ -556,12 +572,17 @@
     // One-shot fetch of the SDR VFO frequency. Sets fetchPending so the
     // next frequency response is used to populate the search box.
     function doFetch() {
-      if (!ws || ws.readyState !== WebSocket.OPEN || trackMode) return;
+      const isOpen = (ws && ws.readyState === WebSocket.OPEN) || (catPort && catPort.readable);
+      if (!isOpen || trackMode) return;
       const btn = document.getElementById('fetchBtn');
       btn.classList.add('active');
       setTimeout(() => btn.classList.remove('active'), 500);
       fetchPending = true;
-      ws.send(JSON.stringify({ event_type: 'get_property', property: 'device_vfo_frequency', value: '' }));
+      if (catPort && catPort.readable) {
+        catSend('FA;');
+      } else {
+        ws.send(JSON.stringify({ event_type: 'get_property', property: 'device_vfo_frequency', value: '' }));
+      }
     }
 
     let trackMode = false;
@@ -571,15 +592,21 @@
     // the SDR VFO drives the frequency automatically.
     function setTrackMode(mode) {
       trackMode = (mode === 'track');
+      const isOpen = (ws && ws.readyState === WebSocket.OPEN) || (catPort && catPort.readable);
       document.getElementById('manualBtn').classList.toggle('active', !trackMode);
       document.getElementById('trackBtn').classList.toggle('active',  trackMode);
-      document.getElementById('fetchBtn').disabled = trackMode || !(dbLoaded && ws && ws.readyState === WebSocket.OPEN);
+      document.getElementById('fetchBtn').disabled = trackMode || !(dbLoaded && isOpen);
       document.querySelector('.mode-tab[data-mode="prefix"]').disabled = trackMode;
       document.querySelector('.mode-tab[data-mode="range"]').disabled  = trackMode;
       searchBox.readOnly = trackMode;
       searchBox.style.opacity = trackMode ? '0.6' : '1';
-      if (trackMode && ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ event_type: 'get_property', property: 'device_vfo_frequency', value: '' }));
+      if (trackMode && isOpen) {
+        if (catPort && catPort.readable) {
+          lastCatFreq = 0;   // force next poll to fire regardless of current freq
+          catSend('FA;');
+        } else {
+          ws.send(JSON.stringify({ event_type: 'get_property', property: 'device_vfo_frequency', value: '' }));
+        }
       }
     }
 
@@ -615,12 +642,19 @@
       } else {
         doSearch();
       }
+      updateWebSearchBtns();
     }
 
-    let isSkedFormat  = false;
-    let isS1bFormat   = false;
-    let isAokiFormat  = false;
-    let nowOn         = false;
+    // Format flags — exactly one is set to true after a successful file load.
+    // Used by applyColVisibility() to hide empty columns and by the source
+    // filter setup to show the correct source options for the loaded format.
+    let isSkedFormat    = false;  // EiBi semicolon-delimited format
+    let isS1bFormat     = false;  // SDR Console .s1b bookmark format
+    let isAokiFormat    = false;  // Aoki fixed-width .txt format
+    let isSdrCsvFormat  = false;  // SDR Console frequency database CSV (# comment header)
+    let isSwskedsFormat = false;  // swskeds combined EiBi/Aoki/HFCC CSV
+    let isHfccFormat    = false;  // HFCC decoded CSV (header uses 'Mode' not 'M')
+    let nowOn           = false;
 
     function langChanged() {
       const el = document.getElementById('langFilter');
@@ -661,6 +695,9 @@
       if (!srcFilter.disabled) srcFilter.value = '';
 
       matchPill.style.display = 'none';
+      sortCol = -1;
+      sortDir = 1;
+      updateWebSearchBtns();
       thead.innerHTML = '';
       tbody.innerHTML = `<tr><td colspan="20"><div class="empty-state">
         <div class="icon">📡</div>
@@ -668,9 +705,18 @@
       </div></td></tr>`;
     }
 
+    // Enable web search buttons only in exact mode with a frequency in the search box.
+    // Prefix and range modes are not suitable for a single-frequency web search.
+    function updateWebSearchBtns() {
+      const enabled = searchMode === 'exact' && searchBox.value.trim() !== '';
+      document.getElementById('webSearch1Btn').disabled = !enabled;
+      document.getElementById('webSearch2Btn').disabled = !enabled;
+    }
+
     function doWebSearch(url) {
-      if (!currentVfo) return;
-      window.open(url + Math.round(parseFloat(currentVfo)), '_blank');
+      const q = searchBox.value.trim();
+      if (!q || searchMode !== 'exact') return;
+      window.open(url + Math.round(parseFloat(q)), '_blank');
     }
 
     function doWebSearch1() { doWebSearch('https://shortwave.live/khz?q='); }
@@ -748,11 +794,16 @@
     };
 
     // Columns (1-based) empty in sked format: Mode, Site, Power, Azimuth
-    const SKED_EMPTY_COLS = [2, 7, 11, 12];
+    const SKED_EMPTY_COLS    = [2, 7, 11, 12];
     // Columns (1-based) empty in s1b format: Language, Site, TX Country, Days, Target, Power, Azimuth, Origin
-    const S1B_EMPTY_COLS  = [6, 7, 8, 9, 10, 11, 12, 13];
-    // Columns (1-based) empty in AOKI format: Mode, Target
-    const AOKI_EMPTY_COLS = [2, 10];
+    const S1B_EMPTY_COLS     = [6, 7, 8, 9, 10, 11, 12, 13];
+    // Columns (1-based) empty in AOKI format: Target
+    const AOKI_EMPTY_COLS    = [10];
+    // Columns (1-based) empty in SDR Console CSV format: Mode
+    const SDR_CSV_EMPTY_COLS = [2];
+    // Columns (1-based) empty in HFCC decoded format: Target
+    const HFCC_EMPTY_COLS    = [10];
+    // swskeds has all columns populated — nothing hidden
 
     function applyColVisibility() {
       // First show all
@@ -764,7 +815,12 @@
         });
       }
       // Then hide empty cols for the current format
-      const emptyCols = isS1bFormat ? S1B_EMPTY_COLS : isSkedFormat ? SKED_EMPTY_COLS : isAokiFormat ? AOKI_EMPTY_COLS : [];
+      const emptyCols = isS1bFormat     ? S1B_EMPTY_COLS     :
+                        isSkedFormat    ? SKED_EMPTY_COLS    :
+                        isAokiFormat    ? AOKI_EMPTY_COLS    :
+                        isSdrCsvFormat  ? SDR_CSV_EMPTY_COLS :
+                        isHfccFormat    ? HFCC_EMPTY_COLS    :
+                        isSwskedsFormat ? []                 : [];
       emptyCols.forEach(n => {
         document.querySelectorAll(`th:nth-child(${n}), td:nth-child(${n})`).forEach(el => {
           el.style.display = 'none';
@@ -780,11 +836,14 @@
       if (!file) return;
 
       // Clear existing database before any load attempt
-      allRows      = [];
-      dbLoaded     = false;
-      isSkedFormat = false;
-      isS1bFormat  = false;
-      isAokiFormat = false;
+      allRows         = [];
+      dbLoaded        = false;
+      isSkedFormat    = false;
+      isS1bFormat     = false;
+      isAokiFormat    = false;
+      isSdrCsvFormat  = false;
+      isSwskedsFormat = false;
+      isHfccFormat    = false;
       thead.innerHTML = '';
       tbody.innerHTML = `<tr><td colspan="20"><div class="empty-state">
         <div class="icon">📡</div>
@@ -808,7 +867,21 @@
         const firstLine = allLines[0];
         const isAoki    = allLines[1] && allLines[1].trimStart().startsWith('FRE');
 
-        if (file.name.toLowerCase().endsWith('.s1b')) {
+        // Format detection order — first match wins:
+        // 1. SDR Console CSV   — first line starts with '#'
+        // 2. s1b               — file extension is .s1b
+        // 3. Aoki              — second line starts with 'FRE'
+        // 4. EiBi              — first line contains ';'
+        // 5. HFCC decoded CSV  — .csv with header containing 'Mode' (full word)
+        // 6. swskeds CSV       — .csv with header containing 'M'
+        // Anything else is rejected as invalid.
+        if (firstLine.replace(/^\uFEFF/, '').startsWith('#')) {
+          allRows = parseSdrCsvFormat(text);
+          isSkedFormat   = false;
+          isS1bFormat    = false;
+          isAokiFormat   = false;
+          isSdrCsvFormat = true;
+        } else if (file.name.toLowerCase().endsWith('.s1b')) {
           allRows = parseS1bFormat(text);
           isSkedFormat = false;
           isS1bFormat  = true;
@@ -825,24 +898,43 @@
           isAokiFormat = false;
         } else if (file.name.toLowerCase().endsWith('.csv')) {
           allRows = parseCSV(text).filter((row, i) => i === 0 || row[0].trim() !== '');
-          isSkedFormat = false;
-          isS1bFormat  = false;
-          isAokiFormat = false;
-          // Remove Date column if entirely empty
-          const dateIdx = allRows[0].findIndex(h => h.trim() === 'Date');
-          if (dateIdx !== -1) {
-            const hasData = allRows.slice(1).some(row => row[dateIdx] && row[dateIdx].trim() !== '');
-            if (!hasData) allRows = allRows.map(row => row.filter((_, i) => i !== dateIdx));
+          const hdr = allRows[0] ? allRows[0].map(h => h.trim()) : [];
+          // HFCC decoded format: header uses 'Mode' (full word), swskeds uses 'M'
+          if (hdr.includes('Frequency') && hdr.includes('Mode') && hdr.includes('Station')) {
+            allRows = parseHfccFormat(text);
+            isSkedFormat    = false;
+            isS1bFormat     = false;
+            isAokiFormat    = false;
+            isSwskedsFormat = false;
+            isHfccFormat    = true;
+          // swskeds format: header uses 'M' for mode
+          } else if (hdr.includes('Frequency') && hdr.includes('M') && hdr.includes('Station')) {
+            isSkedFormat    = false;
+            isS1bFormat     = false;
+            isAokiFormat    = false;
+            isSwskedsFormat = true;
+            isHfccFormat    = false;
+            // Remove Date column if entirely empty
+            const dateIdx = allRows[0].findIndex(h => h.trim() === 'Date');
+            if (dateIdx !== -1) {
+              const hasData = allRows.slice(1).some(row => row[dateIdx] && row[dateIdx].trim() !== '');
+              if (!hasData) allRows = allRows.map(row => row.filter((_, i) => i !== dateIdx));
+            }
+            // Remove Notes column
+            const notesIdx = allRows[0].findIndex(h => h.trim() === 'Notes');
+            if (notesIdx !== -1) allRows = allRows.map(row => row.filter((_, i) => i !== notesIdx));
+          } else {
+            fileInput.value = '';
+            statusText.textContent = 'Invalid file import';
+            return;
           }
-          // Remove Notes column
-          const notesIdx = allRows[0].findIndex(h => h.trim() === 'Notes');
-          if (notesIdx !== -1) allRows = allRows.map(row => row.filter((_, i) => i !== notesIdx));
         } else {
           fileInput.value = '';
           statusText.textContent = 'Invalid file import';
           return;
         }
         document.getElementById('footer').style.display = 'none';
+        fileInput.value = '';
         rowPill.textContent = (allRows.length - 1).toLocaleString() + ' rows';
         rowPill.style.display = '';
         statusText.textContent = 'Loaded · ' + file.name;
@@ -870,7 +962,7 @@
         const langFilter = document.getElementById('langFilter');
         langFilter.innerHTML = '<option value="">All Languages</option>';
 
-        // Add convenience entries for freq.csv format
+        // Add convenience entries for swskeds format
         if (!isSkedFormat && !isS1bFormat) {
 
           // English exact match for convenience
@@ -920,9 +1012,27 @@
           srcFilter.innerHTML = '<option value="Aoki">Aoki</option>';
           srcFilter.disabled = true;
           srcFilter.style.color = 'var(--text-dim)';
+        } else if (isHfccFormat) {
+          srcFilter.innerHTML = '<option value="HFCC">HFCC</option>';
+          srcFilter.disabled = true;
+          srcFilter.style.color = 'var(--text-dim)';
         } else {
-          srcFilter.innerHTML = '<option value="">All</option><option value="EiBi">EiBi</option><option value="Aoki">Aoki</option><option value="HFCC">HFCC</option>';
-          srcFilter.disabled = false;
+          // Dynamically build source filter from values present in the data
+          // Map raw source values to friendly display labels
+          const srcLabelMap = { 'EiBi': 'EiBi', 'Aoki': 'Aoki', 'HFCC': 'HFCC', 'ILGRadio': 'ILG' };
+          const srcCol = allRows[0].indexOf('Source');
+          const srcs = new Set();
+          if (srcCol !== -1) {
+            allRows.slice(1).forEach(row => { if (row[srcCol] && row[srcCol].trim()) srcs.add(row[srcCol].trim()); });
+          }
+          srcFilter.innerHTML = '<option value="">All</option>';
+          [...srcs].sort().forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s;
+            opt.textContent = srcLabelMap[s] || s;
+            srcFilter.appendChild(opt);
+          });
+          srcFilter.disabled = srcs.size <= 1;
           srcFilter.style.color = 'var(--text-dim)';
         }
         [...langs].sort().forEach(l => {
@@ -1069,7 +1179,7 @@
 
     // AOKI fixed-width format parser — maps to standard 14-column internal layout.
     // Column positions derived from the AOKI B25 header line.
-    // Lat/Lon dropped. Mode and Target not present in AOKI. Remarks mapped to Origin column.
+    // Lat/Lon dropped. Mode hardcoded to AM. Target not present in AOKI. Remarks mapped to Origin column.
     function parseAokiFormat(text) {
       const outHeaders = ['Frequency','Mode','Station','On','Off','Language','Site','TX Country','Days','Target','Power','Azimuth','Remarks','Source'];
       const rows = [outHeaders];
@@ -1103,7 +1213,7 @@
 
         rows.push([
           freqHz,    // [0]  Frequency (Hz)
-          '',        // [1]  Mode — not in AOKI
+          'AM',      // [1]  Mode — hardcoded for broadcast
           station,   // [2]  Station
           on,        // [3]  On
           off,       // [4]  Off
@@ -1116,6 +1226,111 @@
           azimuth,   // [11] Azimuth
           remarks,   // [12] Remarks → Origin column
           'Aoki',    // [13] Source
+        ]);
+      }
+      return rows;
+    }
+
+    // HFCC decoded CSV parser.
+    // Header exactly matches the internal 14-column layout.
+    // Frequency is already in Hz. Mode is always empty — set to 'AM' for all rows.
+    // Time format is HH:MM — colon is stripped by isOnAir's parseTime so no conversion needed.
+    // Target is always empty — hidden via HFCC_EMPTY_COLS.
+    function parseHfccFormat(text) {
+      const outHeaders = ['Frequency','Mode','Station','On','Off','Language','Site','TX Country','Days','Target','Power','Azimuth','Origin','Source'];
+      const rows = [outHeaders];
+
+      const lines = text.split(/\r?\n/).filter(l => l.trim());
+      // Skip header line
+      for (let i = 1; i < lines.length; i++) {
+        const cols = parseCSVLine(lines[i]);
+        const freq = cols[0] ? cols[0].trim() : '';
+        if (!freq || isNaN(parseFloat(freq))) continue;
+
+        rows.push([
+          String(parseFloat(freq)),        // [0]  Frequency — already in Hz
+          'AM',                            // [1]  Mode — hardcoded for broadcast
+          cols[2]  ? cols[2].trim()  : '', // [2]  Station
+          cols[3]  ? cols[3].trim()  : '', // [3]  On
+          cols[4]  ? cols[4].trim()  : '', // [4]  Off
+          cols[5]  ? cols[5].trim()  : '', // [5]  Language
+          cols[6]  ? cols[6].trim()  : '', // [6]  Site
+          cols[7]  ? cols[7].trim()  : '', // [7]  TX Country
+          cols[8]  ? cols[8].trim()  : '', // [8]  Days
+          '',                              // [9]  Target — always empty
+          cols[10] ? cols[10].trim() : '', // [10] Power
+          cols[11] ? cols[11].trim() : '', // [11] Azimuth
+          cols[12] ? cols[12].trim() : '', // [12] Origin
+          cols[13] ? cols[13].trim() : '', // [13] Source
+        ]);
+      }
+      return rows;
+    }
+
+    // SDR Console Frequency Database CSV parser.
+    // Detected by first line starting with '#'. Skips all leading '#' comment lines,
+    // then treats the next line as the column header.
+    // Frequency is stored in Hz in the file (despite the file comment claiming kHz).
+    // Maps CSV columns to the standard 14-column internal layout.
+    function parseSdrCsvFormat(text) {
+      const outHeaders = ['Frequency','Mode','Station','On','Off','Language','Site','TX Country','Days','Target','Power','Azimuth','Origin','Source'];
+      const rows = [outHeaders];
+
+      const allLines = text.split(/\r?\n/);
+
+      // Skip all comment lines to find the header
+      let headerIdx = -1;
+      for (let i = 0; i < allLines.length; i++) {
+        const stripped = allLines[i].replace(/^\uFEFF/, '');
+        if (!stripped.startsWith('#') && stripped.trim()) {
+          headerIdx = i;
+          break;
+        }
+      }
+      if (headerIdx === -1) return rows;
+
+      const headers = parseCSVLine(allLines[headerIdx]);
+
+      const col = (name) => headers.findIndex(h => h.trim() === name);
+      const iFreq    = col('Frequency');
+      const iStation = col('Station');
+      const iSite    = col('Site');
+      const iAzi     = col('Azi');
+      const iLang    = col('Language');
+      const iTXCty   = col('TX_Country');
+      const iOn      = col('Time_On');
+      const iOff     = col('Time_Off');
+      const iDays    = col('Days');
+      const iTarget  = col('Target');
+      const iPwr     = col('Pwr');
+      const iMode    = col('M');
+      const iOrg     = col('Org_Country');
+      const iSrc     = col('Source');
+
+      const get = (fields, idx) => (idx !== -1 && idx < fields.length) ? fields[idx].trim() : '';
+
+      for (let i = headerIdx + 1; i < allLines.length; i++) {
+        const line = allLines[i];
+        if (!line.trim() || line.replace(/^\uFEFF/, '').startsWith('#')) continue;
+        const fields = parseCSVLine(line);
+        const freq = get(fields, iFreq);
+        if (!freq || isNaN(parseFloat(freq))) continue;
+
+        rows.push([
+          String(parseFloat(freq)),              // Frequency — already in Hz
+          get(fields, iMode),                    // Mode
+          get(fields, iStation),                 // Station
+          get(fields, iOn),                      // On
+          get(fields, iOff),                     // Off
+          get(fields, iLang),                    // Language
+          get(fields, iSite),                    // Site
+          get(fields, iTXCty),                   // TX Country — already decoded
+          get(fields, iDays),                    // Days
+          decodeTarget(get(fields, iTarget)),    // Target — decode EiBi codes
+          get(fields, iPwr),                     // Power
+          get(fields, iAzi),                     // Azimuth
+          get(fields, iOrg),                     // Origin
+          get(fields, iSrc) || 'SDR',            // Source
         ]);
       }
       return rows;
@@ -1246,9 +1461,16 @@
           const rowMode = rows[idx][1];
           tr.addEventListener('dblclick', () => {
             if (trackMode) return;
-            if (ws && ws.readyState === WebSocket.OPEN) {
+            const validModes = ['AM','USB','LSB','CW','SAM','NFM','WFM'];
+            if (catPort && catPort.readable) {
+              const cmd = 'FA' + String(Math.round(parseFloat(rowFreq))).padStart(11, '0') + ';';
+              catSend(cmd);
+              if (rowMode && validModes.includes(rowMode.trim().toUpperCase())) {
+                const modeCmd = CAT_MODE_MAP[rowMode.trim().toUpperCase()];
+                if (modeCmd) catSend(modeCmd);
+              }
+            } else if (ws && ws.readyState === WebSocket.OPEN) {
               ws.send(JSON.stringify({ event_type: 'set_property', property: 'device_vfo_frequency', value: rowFreq }));
-              const validModes = ['AM','USB','LSB','CW','SAM','NFM','WFM'];
               if (rowMode && validModes.includes(rowMode.trim().toUpperCase())) {
                 ws.send(JSON.stringify({ event_type: 'set_property', property: 'demodulator', value: rowMode.trim().toUpperCase() }));
               }
@@ -1432,6 +1654,7 @@
     setInterval(updateClock, 1000);
 
     searchBox.addEventListener('input', () => {
+      updateWebSearchBtns();
       if (searchMode === 'exact') return;
       clearTimeout(debounceId);
       debounceId = setTimeout(doSearch, 200);
@@ -1461,6 +1684,186 @@
         searchBox.blur();
       }
     });
+
+    // ── Connection mode ────────────────────────────────────────────────────────
+    // catMode: true = CAT (COM port) path active, false = WebSocket path active.
+    // Set by onProgramChange() when the user selects a protocol from the dropdown.
+    let catMode = false;
+
+    // Called when the user selects a protocol from the dropdown.
+    // Shows/hides the IP and Port boxes depending on the selected protocol,
+    // and enables or disables the Connect button accordingly.
+    function onProgramChange() {
+      const prog      = document.getElementById('programSelect').value;
+      const ipBox     = document.getElementById('ipAddress');
+      const portBox   = document.getElementById('portSelect');
+      const connectBtn = document.getElementById('connectBtn');
+
+      if (prog === 'sdrconnect') {   // WebSocket protocol
+        catMode = false;
+        ipBox.style.display   = '';
+        portBox.style.display = '';
+        connectBtn.disabled   = false;
+      } else if (prog === 'catcom') {   // CAT (COM port) protocol
+        catMode = true;
+        ipBox.style.display   = 'none';
+        portBox.style.display = 'none';
+        connectBtn.disabled   = false;
+      } else {
+        catMode = false;
+        ipBox.style.display   = 'none';
+        portBox.style.display = 'none';
+        connectBtn.disabled   = true;
+      }
+    }
+
+    // Routes the Connect/Disconnect button to the correct handler
+    // based on the protocol selected in the dropdown.
+    function toggleConnection() {
+      if (catMode) {
+        catToggleConnection();
+      } else {
+        wsToggleConnection();
+      }
+    }
+
+    // ── CAT connection management (Web Serial API) ─────────────────────────────
+    let catPort      = null;
+    let catWriter    = null;
+    let catReader    = null;
+    let catPollTimer = null;
+    let catBuf       = '';
+    let lastCatFreq  = 0;    // last frequency received from SDR — prevents search triggering when freq unchanged
+
+    // Maps StationFinder demodulator mode strings to Kenwood CAT MD command digits.
+    // MD1=LSB  MD2=USB  MD3=CW  MD4=FM  MD5=AM  MD6=FSK
+    const CAT_MODE_MAP = {
+      'AM': 'MD5;', 'SAM': 'MD5;',
+      'USB': 'MD2;', 'LSB': 'MD1;',
+      'CW':  'MD3;',
+      'NFM': 'MD4;', 'WFM': 'MD4;',
+      'FSK': 'MD6;', 'DIG': 'MD6;',
+    };
+
+    // Handles Connect/Disconnect for CAT (COM port) mode.
+    // On Connect: shows the browser COM port picker, opens the selected port,
+    // starts the read loop and 200ms poll timer.
+    // On Disconnect: delegates to catDisconnect() to cleanly release the port.
+    async function catToggleConnection() {
+      if (catPort) {
+        await catDisconnect();
+        return;
+      }
+      // Show COM port picker on Connect click
+      if (!('serial' in navigator)) {
+        wsSetError('Web Serial not supported. Use Chrome or Edge.');
+        return;
+      }
+      try {
+        catPort = await navigator.serial.requestPort();
+      } catch (err) {
+        // User cancelled picker — stay disconnected
+        return;
+      }
+      try {
+        wsSetStatus('connecting');
+        const btn = document.getElementById('connectBtn');
+        btn.textContent = 'Disconnect';
+        btn.classList.add('disconnect');
+
+        await catPort.open({ baudRate: 9600 });
+        catWriter = catPort.writable.getWriter();
+        catReader = catPort.readable.getReader();
+        lastCatFreq = 0;
+
+        wsSetStatus('connected');
+        wsSetError('');
+        document.getElementById('programSelect').disabled = true;
+        updateTrackBtn();
+
+        catReadLoop();
+        await catSend('FA;');
+        catPollTimer = setInterval(() => { catSend('FA;'); }, 200);
+
+      } catch (err) {
+        wsSetError('Could not open COM port: ' + err.message);
+        await catDisconnect();
+      }
+    }
+
+    // Sends a CAT command string to the SDR via the open serial port.
+    // Silently ignores errors (e.g. if port closes mid-send).
+    async function catSend(cmd) {
+      if (!catWriter) return;
+      try {
+        await catWriter.write(new TextEncoder().encode(cmd));
+      } catch(e) {}
+    }
+
+    // Continuously reads from the serial port and parses FA frequency responses.
+    // faRe.lastIndex is reset each iteration because the regex is stateful (global flag).
+    // catBuf accumulates partial reads; processed data is trimmed after each pass.
+    // Only triggers a search when the frequency actually changes (freqChanged),
+    // except when fetchPending is true — in that case always fires once.
+    async function catReadLoop() {
+      const faRe = /FA(\d{11});/g;
+      try {
+        while (true) {
+          const { value, done } = await catReader.read();
+          if (done) break;
+          catBuf += new TextDecoder().decode(value);
+          let m;
+          faRe.lastIndex = 0;
+          while ((m = faRe.exec(catBuf)) !== null) {
+            const hz = parseInt(m[1]);
+            if (hz <= 0) continue;
+            const freqChanged = (hz !== lastCatFreq);
+            lastCatFreq = hz;
+            // Always update VFO frequency display
+            const khz = (hz / 1000).toFixed(3);
+            currentVfo = khz;
+            const vfoPill = document.getElementById('vfoPill');
+            vfoPill.textContent = `SDR VFO: ${currentVfo} kHz`;
+            vfoPill.style.display = '';
+            // Only trigger search if there is something to act on
+            if (!trackMode && !fetchPending) continue;
+            // In track mode only search if frequency actually changed
+            if (trackMode && !freqChanged) continue;
+            fetchPending = false;
+            searchBox.value = khz;
+            setMode('exact');
+            if (trackMode) doSearch();
+          }
+          const last = catBuf.lastIndexOf(';');
+          if (last >= 0) catBuf = catBuf.slice(last + 1);
+        }
+      } catch(e) {
+        await catDisconnect();
+      }
+    }
+
+    async function catDisconnect() {
+      if (catPollTimer) { clearInterval(catPollTimer); catPollTimer = null; }
+      // Release order is critical: cancel reader first (unblocks read()),
+      // then release writer lock, then close the port.
+      // Skipping any step leaves the port locked and prevents reopening.
+      try { if (catReader) { await catReader.cancel(); catReader.releaseLock(); } } catch(e) {}
+      try { if (catWriter) { await catWriter.close(); } } catch(e) {}
+      try { if (catWriter) { catWriter.releaseLock(); } } catch(e) {}
+      try { if (catPort) { await catPort.close(); } } catch(e) {}
+      catReader = null; catWriter = null; catPort = null;
+      catBuf = ''; lastCatFreq = 0;
+      wsSetStatus('disconnected');
+      const btn = document.getElementById('connectBtn');
+      btn.textContent = 'Connect';
+      btn.classList.remove('disconnect');
+      btn.disabled = false;
+      document.getElementById('programSelect').disabled = false;
+      currentVfo = '';
+      document.getElementById('vfoPill').style.display = 'none';
+      updateTrackBtn();
+    }
+    // End CAT connection management
 
     // WebSocket connection management — connect, disconnect, and message handling
     let ws = null;
@@ -1501,6 +1904,7 @@
         ws.onopen = () => {
           wsSetStatus('connected');
           wsSetError('');
+          document.getElementById('programSelect').disabled = true;
           ws.send(JSON.stringify({ event_type: 'get_property', property: 'device_vfo_frequency', value: '' }));
           updateTrackBtn();
         };
@@ -1509,11 +1913,10 @@
           wsSetStatus('disconnected');
           btn.textContent = 'Connect';
           btn.classList.remove('disconnect');
+          document.getElementById('programSelect').disabled = false;
           ws = null;
           currentVfo = '';
           document.getElementById('vfoPill').style.display = 'none';
-          document.getElementById('webSearch1Btn').disabled = true;
-          document.getElementById('webSearch2Btn').disabled = true;
           updateTrackBtn();
         };
 
@@ -1522,11 +1925,10 @@
           wsSetStatus('disconnected');
           btn.textContent = 'Connect';
           btn.classList.remove('disconnect');
+          document.getElementById('programSelect').disabled = false;
           ws = null;
           currentVfo = '';
           document.getElementById('vfoPill').style.display = 'none';
-          document.getElementById('webSearch1Btn').disabled = true;
-          document.getElementById('webSearch2Btn').disabled = true;
           updateTrackBtn();
         };
 
@@ -1541,8 +1943,6 @@
               const vfoPill = document.getElementById('vfoPill');
               vfoPill.textContent = `SDR VFO: ${currentVfo} kHz`;
               vfoPill.style.display = '';
-              document.getElementById('webSearch1Btn').disabled = false;
-              document.getElementById('webSearch2Btn').disabled = false;
               if (msg.event_type === 'get_property_response' && !trackMode && !fetchPending) {
                 searchBox.value = Math.round(hz / 1000);
                 return;
